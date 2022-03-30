@@ -20,7 +20,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Set the view's delegate
         sceneView.delegate = self
-
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
+        
         createMarsNBox()
     }
     
@@ -31,6 +32,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let configuration = ARWorldTrackingConfiguration()
         //This will print if the current device supports world tracking or not.
         debugPrint("World tracking supported: ", ARWorldTrackingConfiguration.isSupported)
+        
+        configuration.planeDetection = .horizontal
         sceneView.session.run(configuration)
     }
     
@@ -75,6 +78,24 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         material.diffuse.contents = UIImage(named: "art.scnassets/8k_mars.jpeg")
         sphere.materials = [material]
         return sphere
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        if anchor is ARPlaneAnchor {
+            debugPrint("Plane detected")
+            let planeAnchor = anchor as! ARPlaneAnchor
+            let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
+            let planeNode = SCNNode()
+            planeNode.position = SCNVector3(planeAnchor.center.x, 0, planeAnchor.center.z)
+            planeNode.transform = SCNMatrix4MakeRotation(-Float.pi/2, 1, 0, 0)
+            let gridMaterial = SCNMaterial()
+            gridMaterial.diffuse.contents = UIImage(named: "art.scnassets/grid.png")
+            plane.materials = [gridMaterial]
+            planeNode.geometry = plane
+            node.addChildNode(planeNode)
+        } else {
+            return
+        }
     }
 
 }
