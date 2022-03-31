@@ -165,7 +165,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         debugPrint("didAddNode called")
         
         if anchor is ARPlaneAnchor {
-            
+            //Adding of rectangle.
             debugPrint("Plane detected")
             let planeAnchor = anchor as! ARPlaneAnchor
             let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
@@ -177,10 +177,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             plane.materials = [gridMaterial]
             planeNode.geometry = plane
             node.addChildNode(planeNode)
-            
-//            self.showAlert(title: "Plane found!", message: "Press ok to add your geometries.") { _ in
-//                debugPrint("Okay pressed")
-//            }
         }
         guard anchor.name == boxAnchorName
             else { return }
@@ -263,7 +259,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         return true
     }
     
-    
     private func updateSessionInfoLabel(for frame: ARFrame, trackingState: ARCamera.TrackingState) {
         // Update the UI to provide feedback on the state of the AR experience.
         let message: String
@@ -330,6 +325,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
             do {
                 let jsonData = try encoder.encode(arData)
+                debugPrint("JSON DATA", jsonData)
+                // The jsonData here is sometime more than 1MB hence unable to upload on firebase, according to the below answer found on stack overflow we cannot change it.
+//            https://stackoverflow.com/questions/51677810/increase-firebase-cloud-firestore-string-upload-size
                 FirestoreInterface.instance.writeMapToDB(mapData: jsonData) { isSuccess, err in
                     if let err = err {
                         CustomToast.show(message: err.localizedDescription, controller: self)
