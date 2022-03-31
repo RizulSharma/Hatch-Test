@@ -92,18 +92,19 @@ class LoginVC: UIViewController {
     /// Register a new user account.
     @objc fileprivate func performRegistration() {
         debugPrint("performRegistration pressed")
+        self.performSegue(withIdentifier: "goToAr", sender: self)
 
-        FirebaseInterface.instance.createUser(email: self.email, password: self.password) { data, err in
-            if let err = err {
-                CustomToast.show(message: "Registration failed: \(err.localizedDescription)", controller: self)
-                return
-            }
-            //FIXME: SHOW ALERT AND CONTINUE.
-            CustomToast.show(message: "SUCCESS: registering user", controller: self)
-            self.showAlert(title: "HATCH-TEST", message: "Registered successfully.") { _ in
-                self.performSegue(withIdentifier: "goToAr", sender: self)
-            }
-        }
+//        FirebaseInterface.instance.createUser(email: self.email, password: self.password) { data, err in
+//            if let err = err {
+//                CustomToast.show(message: "Registration failed: \(err.localizedDescription)", controller: self)
+//                return
+//            }
+//            //FIXME: SHOW ALERT AND CONTINUE.
+//            CustomToast.show(message: "SUCCESS: registering user", controller: self)
+//            self.showAlert(title: "HATCH-TEST", message: "Registered successfully.") { _ in
+//                self.performSegue(withIdentifier: "goToAr", sender: self)
+//            }
+//        }
         
     }
 
