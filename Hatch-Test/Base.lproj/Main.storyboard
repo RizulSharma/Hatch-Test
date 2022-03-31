@@ -163,7 +163,7 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="SZV-WD-TEh" sceneMemberID="firstResponder"/>
                 <tapGestureRecognizer id="SeL-TK-NPe">
                     <connections>
-                        <action selector="handleSceneTap:" destination="BV1-FR-VrT" id="Lwz-VS-Cfe"/>
+                        <action selector="handleSceneTap:" destination="BV1-FR-VrT" id="PPu-oH-74P"/>
                     </connections>
                 </tapGestureRecognizer>
             </objects>

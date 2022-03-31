@@ -54,10 +54,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     var isRelocalizingMap = false
     
-    var virtualObjectAnchor: ARAnchor?
-    let virtualObjectAnchorName = "virtualObject"
+    var boxAnchor: ARAnchor?
+    let boxAnchorName = "virtualObject"
     
-    var virtualObjects: SCNNode = {
+    var sphereAnchor: ARAnchor?
+    let sphereAnchorname = "sphereAnchor"
+    
+    var virtualObject1: SCNNode = {
         
         let node1 = SCNNode()
         let box = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
@@ -65,16 +68,17 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         material.diffuse.contents = UIColor.red
         box.materials = [material]
         node1.geometry = box
-        
-//        let node2 = SCNNode()
-//        //Creating a sphere. l/b/h is in meters here.
-//        let sphere = SCNSphere(radius: 0.2)
-//        let material2 = SCNMaterial()
-////        node2.position =
-//        // Used mars image just for visual enhancement.
-//        material.diffuse.contents = UIImage(named: "art.scnassets/8k_mars.jpeg")
-//        sphere.materials = [material2]
-//        return [node1, node2]
+        return node1
+    }()
+    
+    
+    var virtualObject2: SCNNode = {
+        let node1 = SCNNode()
+        let box = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.red
+        box.materials = [material]
+        node1.geometry = box
         return node1
     }()
     
@@ -164,7 +168,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     /// Creates a box geometry in 3dspace.
     fileprivate func createSphere()-> SCNSphere {
         //Creating a sphere. l/b/h is in meters here.
-        let sphere = SCNSphere(radius: 0.2)
+        let sphere = SCNSphere(radius: 0.1)
         let material = SCNMaterial()
         // Used mars image just for visual enhancement.
         material.diffuse.contents = UIImage(named: "art.scnassets/8k_mars.jpeg")
@@ -175,21 +179,21 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBAction func handleSceneTap(_ sender: UITapGestureRecognizer) {
 
         // Disable placing objects when the session is still relocalizing
-        if isRelocalizingMap && virtualObjectAnchor == nil {
+        if isRelocalizingMap && boxAnchor == nil {
             return
         }
         // Hit test to find a place for a virtual object.
-        guard let hitTestResult = sceneView
-            .hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingExtent, .estimatedHorizontalPlane])
-            .first
-            else { return }
+        guard let hitTestResult = sceneView.hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingExtent]).first else { return }
+        
         
         // Remove exisitng anchor and add new anchor
-        if let existingAnchor = virtualObjectAnchor {
+        if let existingAnchor = boxAnchor {
             sceneView.session.remove(anchor: existingAnchor)
         }
-        virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitTestResult.worldTransform)
-        sceneView.session.add(anchor: virtualObjectAnchor!)
+        boxAnchor = ARAnchor(name: boxAnchorName, transform: hitTestResult.worldTransform)
+        
+        
+        sceneView.session.add(anchor: boxAnchor!)
         
     }
     
@@ -197,6 +201,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     /// - Tag: RestoreVirtualContent
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        debugPrint("didAddNode called")
+        
         if anchor is ARPlaneAnchor {
             
             debugPrint("Plane detected")
@@ -211,23 +217,27 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             planeNode.geometry = plane
             node.addChildNode(planeNode)
             
-            self.showAlert(title: "Plane found!", message: "Press ok to add your geometries.") { _ in
-                debugPrint("Okay pressed")
-            }
+//            self.showAlert(title: "Plane found!", message: "Press ok to add your geometries.") { _ in
+//                debugPrint("Okay pressed")
+//            }
             
         }
-        guard anchor.name == virtualObjectAnchorName
+        guard anchor.name == boxAnchorName
             else { return }
         
         // save the reference to the virtual object anchor when the anchor is added from relocalizing
-        if virtualObjectAnchor == nil {
-            virtualObjectAnchor = anchor
+        if boxAnchor == nil {
+            boxAnchor = anchor
         }
         
-        node.addChildNode(virtualObjects)
-//        virtualObjects.forEach { object in
-//            node.addChildNode(object)
-//        }
+        node.addChildNode(virtualObject1)
+        let node2 = SCNNode()
+        node2.position = SCNVector3(x: virtualObject1.position.x + 0.2,
+                                    y: virtualObject1.position.y,
+                                    z: virtualObject1.position.z)
+        node2.geometry = self.createSphere()
+        node.addChildNode(node2)
+        
     }
     
     // MARK: - ARSessionDelegate
@@ -242,7 +252,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         switch frame.worldMappingStatus {
         case .extending, .mapped:
             saveExperienceButton.isEnabled =
-                virtualObjectAnchor != nil && frame.anchors.contains(virtualObjectAnchor!)
+                boxAnchor != nil && frame.anchors.contains(boxAnchor!)
         default:
             saveExperienceButton.isEnabled = false
         }
@@ -304,7 +314,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         switch (trackingState, frame.worldMappingStatus) {
         case (.normal, .mapped),
              (.normal, .extending):
-            if frame.anchors.contains(where: { $0.name == virtualObjectAnchorName }) {
+            if frame.anchors.contains(where: { $0.name == boxAnchorName }) {
                 // User has placed an object in scene and the session is mapped, prompt them to save the experience
                 message = "Tap 'Save Experience' to save the current map."
             } else {
@@ -330,7 +340,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     
-    
+
 //    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
 //
 //        if let touch = touches.first {
@@ -347,10 +357,27 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 //                self.nodes.append(node1)
 //                sceneView.scene.rootNode.addChildNode(node1)
 //
+//                let node2 = SCNNode()
+//                node2.position = SCNVector3(x: hitResult.worldTransform.columns.3.x + 0.2,
+//                                            y: hitResult.worldTransform.columns.3.y,
+//                                            z: hitResult.worldTransform.columns.3.z)
+//                node2.geometry = self.createSphere()
+//                self.nodes.append(node2)
+//                sceneView.scene.rootNode.addChildNode(node2)
+//                virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitResult.worldTransform)
+//                virtualObject2Anchor = ARAnchor(name: virtualObject2AnchorName, transform: hitResult.worldTransform)
+//
+////                let secondAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitResult.worldTransform)
+//                sceneView.session.add(anchor: virtualObjectAnchor!)
+//                sceneView.session.add(anchor: virtualObject2Anchor!)
+//
+////                sceneView.session.add(anchor: node2)
 //            }
 //
 //        }
 //    }
+    
+    
     @IBAction func rotateX(_ sender: UIButton) {
 //        let randomX = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
 //        self.virtualObjects.forEach { node in
@@ -383,17 +410,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             guard let snapshotAnchor = SnapshotAnchor(capturing: self.sceneView)
                 else { fatalError("Can't take snapshot") }
             map.anchors.append(snapshotAnchor)
-//
-//            do {
-//                let data = try NSKeyedArchiver.archivedData(withRootObject: map, requiringSecureCoding: true)
-//                try data.write(to: self.mapSaveURL, options: [.atomic])
-//                DispatchQueue.main.async {
-//                    self.loadExperienceButton.isHidden = false
-//                    self.loadExperienceButton.isEnabled = true
-//                }
-//            } catch {
-//                fatalError("Can't save map: \(error.localizedDescription)")
-//            }
             
             let arData = ARData(worldMap: map)
             let encoder = JSONEncoder()
@@ -432,41 +448,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 self.sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 
                 self.isRelocalizingMap = true
-                self.virtualObjectAnchor = nil
+                self.boxAnchor = nil
             } else {
                 debugPrint("Cannot find map.")
             }
         }
-        
-//        /// - Tag: Read stored WorldMap
-//        let worldMap: ARWorldMap = {
-//            guard let data = mapDataFromFile
-//                else { fatalError("Map data should already be verified to exist before Load button is enabled.") }
-//            do {
-//                guard let worldMap = try NSKeyedUnarchiver.unarchivedObject(ofClass: ARWorldMap.self, from: data)
-//                    else { fatalError("No ARWorldMap in archive.") }
-//                return worldMap
-//            } catch {
-//                fatalError("Can't unarchive ARWorldMap from file data: \(error)")
-//            }
-//        }()
-//
-//        // Display the snapshot image stored in the world map to aid user in relocalizing.
-//        if let snapshotData = worldMap.snapshotAnchor?.imageData,
-//            let snapshot = UIImage(data: snapshotData) {
-//            self.snapshotThumbnail.image = snapshot
-//        } else {
-//            print("No snapshot image in world map")
-//        }
-//        // Remove the snapshot anchor from the world map since we do not need it in the scene.
-//        worldMap.anchors.removeAll(where: { $0 is SnapshotAnchor })
-//
-//        let configuration = self.defaultConfiguration // this app's standard world tracking settings
-//        configuration.initialWorldMap = worldMap
-//        sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
-//
-//        isRelocalizingMap = true
-//        virtualObjectAnchor = nil
         
     }
     
