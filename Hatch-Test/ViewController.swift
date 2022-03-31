@@ -57,9 +57,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     var boxAnchor: ARAnchor?
     let boxAnchorName = "virtualObject"
     
-    var sphereAnchor: ARAnchor?
-    let sphereAnchorname = "sphereAnchor"
-    
     var virtualObject1: SCNNode = {
         
         let node1 = SCNNode()
@@ -73,12 +70,15 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     
     var virtualObject2: SCNNode = {
+        
         let node1 = SCNNode()
-        let box = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
+        //Creating a sphere. l/b/h is in meters here.
+        let sphere = SCNSphere(radius: 0.1)
         let material = SCNMaterial()
-        material.diffuse.contents = UIColor.red
-        box.materials = [material]
-        node1.geometry = box
+        // Used mars image just for visual enhancement.
+        material.diffuse.contents = UIImage(named: "art.scnassets/8k_mars.jpeg")
+        sphere.materials = [material]
+        node1.geometry = sphere
         return node1
     }()
     
@@ -130,20 +130,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         sceneView.session.pause()
     }
     
-    fileprivate func createMarsNBox() {
-        let node1 = SCNNode()
-        node1.position = SCNVector3(0, -0.1, -0.5)
-        node1.geometry = self.createBox()
-        
-        let node2 = SCNNode()
-        node2.position = SCNVector3(0.1, 0.1, -0.5)
-        node2.geometry = self.createSphere()
-        
-        sceneView.scene.rootNode.addChildNode(node1)
-        node1.addChildNode(node2)
-        sceneView.autoenablesDefaultLighting = true
-    }
-    
     fileprivate func checkPreviousMaps() {
          FirestoreInterface.instance.readMapFromDB { isAvailable in
              if isAvailable != nil {
@@ -152,28 +138,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                  self.loadExperienceButton.isHidden = true
              }
          }
-    }
-    
-    
-    /// Creates a box geometry in 3dspace.
-    fileprivate func createBox()-> SCNBox {
-        //Creating a box. l/b/h is in meters here.
-        let box = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
-        let material = SCNMaterial()
-        material.diffuse.contents = UIColor.red
-        box.materials = [material]
-        return box
-    }
-    
-    /// Creates a box geometry in 3dspace.
-    fileprivate func createSphere()-> SCNSphere {
-        //Creating a sphere. l/b/h is in meters here.
-        let sphere = SCNSphere(radius: 0.1)
-        let material = SCNMaterial()
-        // Used mars image just for visual enhancement.
-        material.diffuse.contents = UIImage(named: "art.scnassets/8k_mars.jpeg")
-        sphere.materials = [material]
-        return sphere
     }
 
     @IBAction func handleSceneTap(_ sender: UITapGestureRecognizer) {
@@ -185,14 +149,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         // Hit test to find a place for a virtual object.
         guard let hitTestResult = sceneView.hitTest(sender.location(in: sceneView), types: [.existingPlaneUsingExtent]).first else { return }
         
-        
         // Remove exisitng anchor and add new anchor
         if let existingAnchor = boxAnchor {
             sceneView.session.remove(anchor: existingAnchor)
         }
         boxAnchor = ARAnchor(name: boxAnchorName, transform: hitTestResult.worldTransform)
-        
-        
         sceneView.session.add(anchor: boxAnchor!)
         
     }
@@ -220,7 +181,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 //            self.showAlert(title: "Plane found!", message: "Press ok to add your geometries.") { _ in
 //                debugPrint("Okay pressed")
 //            }
-            
         }
         guard anchor.name == boxAnchorName
             else { return }
@@ -231,12 +191,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         }
         
         node.addChildNode(virtualObject1)
-        let node2 = SCNNode()
-        node2.position = SCNVector3(x: virtualObject1.position.x + 0.2,
+        virtualObject2.position = SCNVector3(x: virtualObject1.position.x + 0.2,
                                     y: virtualObject1.position.y,
                                     z: virtualObject1.position.z)
-        node2.geometry = self.createSphere()
-        node.addChildNode(node2)
+        node.addChildNode(virtualObject2)
         
     }
     
@@ -340,65 +298,21 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     
-
-//    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-//
-//        if let touch = touches.first {
-//            let touchLocation = touch.location(in: sceneView)
-//            let results = sceneView.hitTest(touchLocation, types: .existingPlaneUsingExtent)
-//
-//            if let hitResult = results.first {
-//                print(hitResult)
-//                let node1 = SCNNode()
-//                node1.position = SCNVector3(x: hitResult.worldTransform.columns.3.x,
-//                                            y: hitResult.worldTransform.columns.3.y,
-//                                            z: hitResult.worldTransform.columns.3.z)
-//                node1.geometry = self.createBox()
-//                self.nodes.append(node1)
-//                sceneView.scene.rootNode.addChildNode(node1)
-//
-//                let node2 = SCNNode()
-//                node2.position = SCNVector3(x: hitResult.worldTransform.columns.3.x + 0.2,
-//                                            y: hitResult.worldTransform.columns.3.y,
-//                                            z: hitResult.worldTransform.columns.3.z)
-//                node2.geometry = self.createSphere()
-//                self.nodes.append(node2)
-//                sceneView.scene.rootNode.addChildNode(node2)
-//                virtualObjectAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitResult.worldTransform)
-//                virtualObject2Anchor = ARAnchor(name: virtualObject2AnchorName, transform: hitResult.worldTransform)
-//
-////                let secondAnchor = ARAnchor(name: virtualObjectAnchorName, transform: hitResult.worldTransform)
-//                sceneView.session.add(anchor: virtualObjectAnchor!)
-//                sceneView.session.add(anchor: virtualObject2Anchor!)
-//
-////                sceneView.session.add(anchor: node2)
-//            }
-//
-//        }
-//    }
-    
-    
     @IBAction func rotateX(_ sender: UIButton) {
-//        let randomX = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
-//        self.virtualObjects.forEach { node in
-//            node.runAction(SCNAction.rotateBy(x: CGFloat(randomX), y: 0, z: 0, duration: 0.5))
-//        }
+        let randomX = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+        virtualObject1.runAction(SCNAction.rotateBy(x: CGFloat(randomX), y: 0, z: 0, duration: 0.5))
     }
     
     @IBAction func rotateY(_ sender: UIButton) {
-//        let randomY = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
-//        self.virtualObjects.forEach { node in
-//            node.runAction(SCNAction.rotateBy(x: 0, y: CGFloat(randomY), z: 0, duration: 0.5))
-//        }
-
+        let randomY = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+        virtualObject1.runAction(SCNAction.rotateBy(x: 0, y: CGFloat(randomY), z: 0, duration: 0.5))
     }
+    
     @IBAction func rotateZ(_ sender: UIButton) {
-//        let randomZ = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
-//        self.virtualObjects.forEach { node in
-//            node.runAction(SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(randomZ), duration: 0.5))
-//        }
-
+        let randomZ = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+        virtualObject1.runAction(SCNAction.rotateBy(x: 0, y: 0, z: CGFloat(randomZ), duration: 0.5))
     }
+    
     
     @IBAction func saveExperience(_ sender: UIButton) {
         
@@ -416,7 +330,11 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
             do {
                 let jsonData = try encoder.encode(arData)
-                FirestoreInterface.instance.writeMapToDB(mapData: jsonData) { _ in
+                FirestoreInterface.instance.writeMapToDB(mapData: jsonData) { isSuccess, err in
+                    if let err = err {
+                        CustomToast.show(message: err.localizedDescription, controller: self)
+                        return
+                    }
                     debugPrint("SUCCESS saving URL")
                     DispatchQueue.main.async {
                         self.loadExperienceButton.isHidden = false
@@ -424,7 +342,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                     }
                 }
             } catch {
-                print(error)
+                CustomToast.show(message: error.localizedDescription, controller: self)
             }
         }
     }
@@ -450,7 +368,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
                 self.isRelocalizingMap = true
                 self.boxAnchor = nil
             } else {
-                debugPrint("Cannot find map.")
+                CustomToast.show(message: "Cannot find existing Map", controller: self)
             }
         }
         

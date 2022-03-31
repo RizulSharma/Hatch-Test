@@ -39,15 +39,17 @@ class FirestoreInterface: NSObject {
         }
     }
     
-    func writeMapToDB(mapData: Any, completion: @escaping (Bool)-> ()) {
+    func writeMapToDB(mapData: Any, completion: @escaping (Bool, Error?)-> ()) {
+        self.busyMLD.value = true
         let mapData: [String: Any] = ["mapData": mapData]
         userPath.setData(mapData, merge: false) { err in
             if let err = err {
                 self.logError(funcName: "writeMapToDB", reason: err.localizedDescription)
+                completion(false, err)
                 return
             }
             self.logSuccess(funcName: "writeMapToDB")
-            completion(true)
+            completion(true, nil)
         }
     }
     
