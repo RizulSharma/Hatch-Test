@@ -131,7 +131,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     fileprivate func checkPreviousMaps() {
-         FirestoreInterface.instance.readMapFromDB { isAvailable in
+         FirestoreInterface.instance.readMapFromRDB { isAvailable in
              if isAvailable != nil {
                  self.loadExperienceButton.isHidden = false
              } else {
@@ -326,9 +326,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             do {
                 let jsonData = try encoder.encode(arData)
                 debugPrint("JSON DATA", jsonData)
-                // The jsonData here is sometime more than 1MB hence unable to upload on firebase, according to the below answer found on stack overflow we cannot change it.
-//            https://stackoverflow.com/questions/51677810/increase-firebase-cloud-firestore-string-upload-size
-                FirestoreInterface.instance.writeMapToDB(mapData: jsonData) { isSuccess, err in
+                
+                FirestoreInterface.instance.writeMapToRDB(mapData: jsonData.base64EncodedString()) { isSuccess, err in
                     if let err = err {
                         CustomToast.show(message: err.localizedDescription, controller: self)
                         return
@@ -347,7 +346,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     
     @IBAction func loadExperience(_ sender: Any) {
         
-        FirestoreInterface.instance.readMapFromDB { fetchedMap in
+        FirestoreInterface.instance.readMapFromRDB { fetchedMap in
             if let worldMap = fetchedMap {
                 // Display the snapshot image stored in the world map to aid user in relocalizing.
                 if let snapshotData = worldMap.snapshotAnchor?.imageData,

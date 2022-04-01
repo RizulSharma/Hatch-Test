@@ -9,7 +9,9 @@ import FirebaseFirestore
 import FirebaseAuth
 import UIKit
 import ARKit
+import FirebaseDatabase
 
+/// Handles Db operations with Firebase Realtime Database.
 class FirestoreInterface: NSObject {
     
     static let instance = FirestoreInterface()
@@ -23,47 +25,61 @@ class FirestoreInterface: NSObject {
         #endif
     }
     
-    private var userPath: DocumentReference {
+    /// ref to realtime DB.
+    var ref: DatabaseReference! {
         get {
-            /// Access the Cloud Firestore instance
-            let db = Firestore.firestore()
-            return db.collection(USERS).document(FirebaseInterface.instance.currentUser?.uid ?? "?")
+            Database.database(url: "https://hatch-test-58d37-default-rtdb.asia-southeast1.firebasedatabase.app").reference()
         }
     }
     
-    private var busyMLD = LiveData<Bool>(initialValue: false)
+    /// Current logged in user.
+    private var user: User? {
+        get {
+             return FirebaseInterface.instance.currentUser
+        }
+    }
+    
+    
     /// This bindable(LiveData) is used to show the progressHUD in viewController.
+    private var busyMLD = LiveData<Bool>(initialValue: false)
     var busyLD: LiveData<Bool> {
         get {
             busyMLD
         }
     }
     
-    func writeMapToDB(mapData: Any, completion: @escaping (Bool, Error?)-> ()) {
+    /// This func saves the world map data to the firebase realtime DB.
+    /// - Parameters:
+    ///   - mapData: The base64 encoded string. (We use string because realtimeDB only supports NSString NSNumber NSDictionary NSArray dataTypes.)
+    ///   - completion: returns true is save was successful.
+    func writeMapToRDB(mapData: String, completion: @escaping (Bool, Error?)-> ()) {
+        self.busyMLD.value = true
         self.busyMLD.value = true
         let mapData: [String: Any] = ["mapData": mapData]
-        userPath.setData(mapData, merge: false) { err in
+        self.ref.child("users").child(user?.uid ?? "?").setValue(mapData) { err, ref in
             if let err = err {
-                self.logError(funcName: "writeMapToDB", reason: err.localizedDescription)
+                self.logError(funcName: "writeMapToRDB", reason: err.localizedDescription)
                 completion(false, err)
                 return
             }
             self.logSuccess(funcName: "writeMapToDB")
             completion(true, nil)
         }
+        
     }
     
-    
-    func readMapFromDB(completion: @escaping (ARWorldMap?)-> ()) {
+    /// This func reads the encded string save on Firebase RelatimeDB.
+    /// - Parameter completion: returns the encoded string converted to aworld map.
+    func readMapFromRDB(completion: @escaping (ARWorldMap?)-> ()) {
         self.busyMLD.value = true
-        userPath.getDocument { snapshot, err in
+        ref.child("users/\(user?.uid ?? "?")/mapData").getData(completion:  { err, snapshot in
             if let err = err {
                 self.logError(funcName: "readMapFromDB", reason: err.localizedDescription)
+                completion(nil)
                 return
             }
-            if let snapshot = snapshot {
-                let data = snapshot.data()
-                if let arData = data?["mapData"] as? Data {
+            if let mapDataStr = snapshot.value as? String {
+                if let arData = Data(base64Encoded: mapDataStr) {
                     let decoder = JSONDecoder()
                     do {
                         let decoded = try decoder.decode(ARData.self, from: arData)
@@ -77,16 +93,15 @@ class FirestoreInterface: NSObject {
                         completion(nil)
                     }
                 } else {
-                    self.logError(funcName: "readMapFromDB", reason: "Data not found.")
+                    self.logError(funcName: "readMapFromDB", reason: "Unable to convert to data.")
                     completion(nil)
                 }
             } else {
-                self.logError(funcName: "readMapFromDB", reason: "Snapshot not found.")
+                self.logError(funcName: "readMapFromDB", reason: "Unable to find mapData.")
                 completion(nil)
             }
-        }
+        })
     }
-    
     
     fileprivate func logError(funcName: String, reason: String = "") {
         self.busyMLD.value = false

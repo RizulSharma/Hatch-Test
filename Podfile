@@ -10,5 +10,7 @@ pod 'Firebase/Auth'
 pod 'Firebase/Firestore'
 pod 'LBTATools'
 pod 'JGProgressHUD'
+pod 'Firebase'
+pod 'Firebase/Database'
 
 end
